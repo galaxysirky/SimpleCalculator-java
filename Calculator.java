@@ -192,7 +192,7 @@ public class Calculator
 
     private void setResult()
     {
-        if (!box.getText().equals(""))
+        if (!isEmpty())
         {
             GetResult.setExpression(box.getText());
             try
@@ -205,6 +205,16 @@ public class Calculator
             }
             box.setText("");
         }
+        else
+        {
+            JOptionPane.showMessageDialog(null, "表达式为空,请重新输入");
+        }
+    }
+
+    private boolean isEmpty()
+    {
+        String str = box.getText();
+        return str.isEmpty() || str.isBlank();
     }
 
     private void addKeyboardEvent()
