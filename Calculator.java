@@ -1,25 +1,34 @@
 import java.awt.GridLayout;
 import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
 import java.awt.event.KeyListener;
+import java.awt.event.MouseListener;
+import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.net.URL;
+import java.text.DecimalFormat;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Color;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.Enumeration;
+import java.io.File;
 
+import javax.imageio.stream.ImageInputStream;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
-import javax.swing.UIManager;
-import javax.swing.plaf.FontUIResource;
 
 public class Calculator
 {
-    private JFrame mainFrame = new JFrame("Calculator");
+    private JFrame mainFrame = new JFrame("计算器");
     private JPanel boxField = new JPanel();
     private JTextField box = new JTextField();
 
@@ -38,13 +47,15 @@ public class Calculator
     private JButton minus = new JButton("-");
     private JButton mutiply = new JButton("x");
     private JButton divide = new JButton("/");
-    private JButton equal = new JButton("=");
     private JButton dot = new JButton(".");
+    private JButton equal = new JButton("=");
+
+    private static final String[] buttonNames = {"num0","num1","num2","num3","num4","num5","num6","num7","num8","num9","plus","minus","divide","dot","equal"};
 
     public Calculator()
     {
         init();
-        setButtonsFont(new Font("alias",Font.PLAIN,18));
+        setButtonsFont(new Font("微软雅黑",Font.BOLD,17));
         addKeyboardEvent();
         addMouseEvent();
     }
@@ -78,6 +89,7 @@ public class Calculator
         buttonsField.add(equal);
         buttonsField.add(divide);
 
+        mainFrame.setIconImage(new ImageIcon(getClass().getClassLoader().getResource("image/icon.png")).getImage());
         mainFrame.setLayout(new FlowLayout(FlowLayout.CENTER, 0, 20));
         mainFrame.setVisible(true);
         mainFrame.setSize(400, 440);
@@ -89,104 +101,120 @@ public class Calculator
 
     private void setButtonsFont(Font font)
     {
-        num0.setFont(font);
-        num1.setFont(font);
-        num2.setFont(font);
-        num3.setFont(font);
-        num4.setFont(font);
-        num5.setFont(font);
-        num6.setFont(font);
-        num7.setFont(font);
-        num8.setFont(font);
-        num9.setFont(font);
-        plus.setFont(font);
-        minus.setFont(font);
-        mutiply.setFont(font);
-        divide.setFont(font);
-        equal.setFont(font);
-        dot.setFont(font);
+        try
+        {
+            Method setFontMethod = Class.forName("javax.swing.JButton").getMethod("setFont", Font.class);
+            for(int i=0;i<buttonNames.length;++i)
+            {
+                Field buttonField = getClass().getDeclaredField(buttonNames[i]);
+                buttonField.setAccessible(true);
+                setFontMethod.invoke(buttonField.get(this), font);
+            }
+        }
+        catch(Exception e)
+        {
+            showMessage("反射失败！程序退出！");
+            mainFrame.dispose();
+        }
     }
 
     private void addMouseEvent()
     {
-        num0.addActionListener(v -> {
-            box.setText(box.getText() + "0");
-            mainFrame.requestFocus();
+        final Color defaultBackground = num0.getBackground();
+        try
+        {
+            final String [] text = {"0","1","2","3","4","5","6","7","8","9","+","-","/","."};
+            final Method addEventListenerMethod = Class.forName("javax.swing.JButton").getMethod("addMouseListener", MouseListener.class);
+            for(int i=0;i<text.length;++i)
+            {
+                final Field buttonField = getClass().getDeclaredField(buttonNames[i]);
+                buttonField.setAccessible(true);
+                
+                addEventListenerMethod.invoke(buttonField.get(this), new MouseListener()
+                {
+                    @Override
+                    public void mouseClicked​(MouseEvent e)
+                    {
+                        String s = ((JButton)e.getSource()).getText();
+                        if(ExpressionHandle.canInput(box.getText(),s.charAt(0)))
+                        {
+                            box.setText(box.getText() + s);
+                        }
+                        mainFrame.requestFocus();
+                    }
+                    @Override
+                    public void mouseEntered​(MouseEvent e)
+                    {
+                        JButton button = (JButton)e.getSource();
+                        button.setBackground(new Color(180,180,180));
+                    }
+                    @Override
+                    public void mouseExited​(MouseEvent e)
+                    {
+                        ((JButton)e.getSource()).setBackground(defaultBackground);
+                    }
+                    @Override
+                    public void mousePressed​(MouseEvent e){}
+                    @Override
+                    public void mouseReleased​(MouseEvent e){}
+                });
+            }
+        }
+        catch(Exception e)
+        {
+            showMessage("反射失败！程序退出！");
+            mainFrame.dispose();
+        }
+
+        mutiply.addMouseListener(new MouseListener()
+        {
+            @Override
+            public void mouseClicked​(MouseEvent e)
+            {
+                if(ExpressionHandle.canInput(box.getText(),'*'))
+                    box.setText(box.getText() + "*");
+                mainFrame.requestFocus();
+            }
+            @Override
+            public void mouseEntered​(MouseEvent e)
+            {
+                JButton button = (JButton)e.getSource();
+                button.setBackground(new Color(180,180,180));
+            }
+            @Override
+            public void mouseExited​(MouseEvent e)
+            {
+                ((JButton)e.getSource()).setBackground(defaultBackground);
+            }
+            @Override
+            public void mousePressed​(MouseEvent e){}
+            @Override
+            public void mouseReleased​(MouseEvent e){}   
         });
 
-        num1.addActionListener(v -> {
-            box.setText(box.getText() + "1");
-            mainFrame.requestFocus();
-        });
-
-        num2.addActionListener(v -> {
-            box.setText(box.getText() + "2");
-            mainFrame.requestFocus();
-        });
-
-        num3.addActionListener(v -> {
-            box.setText(box.getText() + "3");
-            mainFrame.requestFocus();
-        });
-
-        num4.addActionListener(v -> {
-            box.setText(box.getText() + "4");
-            mainFrame.requestFocus();
-        });
-
-        num5.addActionListener(v -> {
-            box.setText(box.getText() + "5");
-            mainFrame.requestFocus();
-        });
-
-        num6.addActionListener(v -> {
-            box.setText(box.getText() + "6");
-            mainFrame.requestFocus();
-        });
-
-        num7.addActionListener(v -> {
-            box.setText(box.getText() + "7");
-            mainFrame.requestFocus();
-        });
-
-        num8.addActionListener(v -> {
-            box.setText(box.getText() + "8");
-            mainFrame.requestFocus();
-        });
-
-        num9.addActionListener(v -> {
-            box.setText(box.getText() + "9");
-            mainFrame.requestFocus();
-        });
-
-        dot.addActionListener(v -> {
-            box.setText(box.getText() + ".");
-            mainFrame.requestFocus();
-        });
-
-        plus.addActionListener(v -> {
-            box.setText(box.getText() + "+");
-            mainFrame.requestFocus();
-        });
-
-        minus.addActionListener(v -> {
-            box.setText(box.getText() + "-");
-            mainFrame.requestFocus();
-        });
-
-        mutiply.addActionListener(v -> {
-            box.setText(box.getText() + "*");
-            mainFrame.requestFocus();
-        });
-
-        divide.addActionListener(v -> {
-            box.setText(box.getText() + "/");
-            mainFrame.requestFocus();
-        });
-
-        equal.addActionListener(v -> {
-            setResult();
-            mainFrame.requestFocus();
+        equal.addMouseListener(new MouseListener()
+        {
+            @Override
+            public void mouseClicked​(MouseEvent e)
+            {
+                setResult();
+                mainFrame.requestFocus();
+            }
+            @Override
+            public void mouseEntered​(MouseEvent e)
+            {
+                JButton button = (JButton)e.getSource();
+                button.setBackground(new Color(180,180,180));
+            }
+            @Override
+            public void mouseExited​(MouseEvent e)
+            {
+                ((JButton)e.getSource()).setBackground(defaultBackground);
+            }
+            @Override
+            public void mousePressed​(MouseEvent e){}
+            @Override
+            public void mouseReleased​(MouseEvent e){}   
         });
     }
 
@@ -194,27 +222,27 @@ public class Calculator
     {
         if (!isEmpty())
         {
-            GetResult.setExpression(box.getText());
+            ExpressionHandle.setExpression(box.getText());
             try
             {
-                JOptionPane.showMessageDialog(null, GetResult.valid() ? GetResult.result() : "表达式错误,请重新输入");
+                showMessage(ExpressionHandle.valid() ? ExpressionHandle.result() : "表达式错误,请重新输入");
             }
             catch (Exception e)
             {
-                JOptionPane.showMessageDialog(null, "除数为0,请重新输入");
+                showMessage("除数为0,请重新输入");
             }
             box.setText("");
         }
         else
         {
-            JOptionPane.showMessageDialog(null, "表达式为空,请重新输入");
+            showMessage("表达式为空,请重新输入");
         }
     }
 
     private boolean isEmpty()
     {
         String str = box.getText();
-        return str.isEmpty() || str.isBlank();
+        return str == null || str.isEmpty();
     }
 
     private void addKeyboardEvent()
@@ -222,6 +250,7 @@ public class Calculator
         mainFrame.addKeyListener(new KeyListener()
         {
             private boolean shift = false;
+            private boolean enterNotPressedFirst = true;
             @Override
             public void keyPressed(KeyEvent e)
             {
@@ -232,53 +261,55 @@ public class Calculator
             @Override
             public void keyReleased(KeyEvent e)
             {
-                if (e.getKeyCode() == KeyEvent.VK_0)
-                    box.setText(box.getText() + "0");
-                else if (e.getKeyCode() == KeyEvent.VK_1)
-                    box.setText(box.getText() + "1");
-                else if (e.getKeyCode() == KeyEvent.VK_1)
-                    box.setText(box.getText() + "1");
-                else if (e.getKeyCode() == KeyEvent.VK_2)
-                    box.setText(box.getText() + "2");
-                else if (e.getKeyCode() == KeyEvent.VK_3)
-                    box.setText(box.getText() + "3");
-                else if (e.getKeyCode() == KeyEvent.VK_4)
-                    box.setText(box.getText() + "4");
-                else if (e.getKeyCode() == KeyEvent.VK_5)
-                    box.setText(box.getText() + "5");
-                else if (e.getKeyCode() == KeyEvent.VK_6)
-                    box.setText(box.getText() + "6");
-                else if (e.getKeyCode() == KeyEvent.VK_7)
-                    box.setText(box.getText() + "7");
-                else if (e.getKeyCode() == KeyEvent.VK_8)
-                    box.setText(box.getText() + (shift ? "*" : "8"));
-                else if (e.getKeyCode() == KeyEvent.VK_9)
-                    box.setText(box.getText() + "9");
-                else if (e.getKeyCode() == KeyEvent.VK_MINUS)
-                    box.setText(box.getText() + "-");
-                else if (e.getKeyCode() == KeyEvent.VK_SLASH)
-                    box.setText(box.getText() + "/");
-                else if (e.getKeyCode() == KeyEvent.VK_PERIOD)
-                    box.setText(box.getText() + ".");
-                else if (e.getKeyCode() == KeyEvent.VK_ESCAPE)
-                    box.setText("");
-                else if(e.getKeyCode() == KeyEvent.VK_EQUALS)
+                if(ExpressionHandle.canInput(box.getText(),e.getKeyChar()))
                 {
-                    if(shift)
-                        box.setText(box.getText() + "+");
-                    else
-                        setResult();
+                    int code = e.getKeyCode();
+                    if(code >= KeyEvent.VK_0 && code <= KeyEvent.VK_7)
+                        box.setText(box.getText() + (code-KeyEvent.VK_0));
+                    else if (code == KeyEvent.VK_8)
+                        box.setText(box.getText() + (shift ? "*" : "8"));
+                    else if (code == KeyEvent.VK_9)
+                        box.setText(box.getText() + "9");
+                    else if (code == KeyEvent.VK_MINUS)
+                        box.setText(box.getText() + "-");
+                    else if (code == KeyEvent.VK_SLASH)
+                        box.setText(box.getText() + "/");
+                    else if (code == KeyEvent.VK_PERIOD)
+                        box.setText(box.getText() + ".");
+                    else if (code == KeyEvent.VK_ESCAPE)
+                        box.setText("");
+                    else if(code == KeyEvent.VK_EQUALS)
+                    {
+                        if(shift)
+                            box.setText(box.getText() + "+");
+                        else
+                        {
+                            if(enterNotPressedFirst)
+                            {
+                                setResult();
+                                enterNotPressedFirst = false;
+                            }
+                            else
+                                enterNotPressedFirst = true;
+                        }
+                    }
+                    else if (code == KeyEvent.VK_BACK_SPACE)
+                    {
+                        if(!box.getText().equals(""))
+                            box.setText(box.getText().substring(0,box.getText().length()-1));
+                    }
+                    else if (code == KeyEvent.VK_ENTER)
+                    {            
+                        if(enterNotPressedFirst)
+                        {
+                            setResult();
+                            enterNotPressedFirst = false;
+                        }
+                        else
+                            enterNotPressedFirst = true;
+                    }
+                    shift = false;
                 }
-                else if (e.getKeyCode() == KeyEvent.VK_BACK_SPACE)
-                {
-                    if(!box.getText().equals(""))
-                        box.setText(box.getText().substring(0,box.getText().length()-1));
-                }
-                else if (e.getKeyCode() == KeyEvent.VK_ENTER)
-                {
-                    setResult();
-                }
-                shift = false;
             }
 
             @Override
@@ -286,16 +317,34 @@ public class Calculator
         });
     }
 
+    private void showMessage(String message)
+    {
+        JOptionPane.showMessageDialog(null, message,"提示信息",JOptionPane.INFORMATION_MESSAGE);
+    }
+
     public static void main(String[] args) {
         new Calculator();
     }
 }
 
-class GetResult
+class ExpressionHandle
 {
     private static String str;
     private static Deque<Character> operators = new ArrayDeque<>();
     private static Deque<Double> operands = new ArrayDeque<>();
+
+    public static boolean canInput(String s,char c)
+    {
+        str = s;
+        if(s == null || s.isEmpty())
+            return isDigit(c);
+        char lastChar = s.charAt(s.length()-1);
+        if(isDigit(lastChar))
+            return true;
+        if((isSign(c) || isDot(c)) && (isSign(lastChar) || isDot(lastChar)))
+            return false;
+        return true;
+    }
 
     public static String result() throws Exception
     {
@@ -319,7 +368,21 @@ class GetResult
         }
         while(!empty())
             calculate();
-        return String.valueOf(getResultNum());
+        
+        String res = String.format("%.5f", getResultNum());
+        if(res.indexOf(".") != -1)
+        {
+            char [] c = res.toCharArray();
+            for(len = c.length - 1 ; len>=0 ; --len)
+            {
+                if(c[len] != '0')
+                    break;
+            }
+            if(c[len] == '.')
+                --len;
+            return res.substring(0, len+1);
+        }
+        return res;
     }
 
     private static char getSign()
@@ -430,7 +493,8 @@ class GetResult
     {
         if(isSign(0) || isDot(0))
             return false;
-        for(int i=0;i<str.length();++i)
+        int len = str.length();
+        for(int i=0;i<len;++i)
         {
             if(isSign(i))
             {
@@ -443,6 +507,8 @@ class GetResult
                     return false;
             }
         }
+        if(isSign(len-1) || isDot(len-1))
+            return false;
         return true;
     }
 
@@ -453,30 +519,33 @@ class GetResult
         operators.clear();
     }
 
+    private static boolean isSign(char c)
+    {
+        return c == '+' || c == '-' || c == '*' || c == '/';
+    }
+
     private static boolean isSign(int index)
     {
-        if(index < str.length())
-        {
-            char c = str.charAt(index);
-            return c == '+' || c == '-' || c == '*' || c == '/';
-        }
-        return false;
+        return index < str.length() ? isSign(str.charAt(index)) : false;
     }
 
     private static boolean isDot(int index)
     {
-        if(index < str.length())
-            return str.charAt(index) == '.';
-        return false;
+        return index < str.length() ? isDot(str.charAt(index)) : false;
+    }
+
+    private static boolean isDot(char c)
+    {
+        return c == '.';
+    }
+
+    private static boolean isDigit(char c)
+    {
+        return c >= '0' && c <= '9';
     }
 
     private static boolean isDigit(int index)
     {
-        if(index < str.length())
-        {
-            char c = str.charAt(index);
-            return c >= '0' && c <= '9';
-        }
-        return false;
+        return index < str.length() ? isDigit(str.charAt(index)) : false;
     }
 }
