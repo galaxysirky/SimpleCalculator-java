@@ -3,9 +3,9 @@
 
 支持鼠标以及键盘输入。
 
-![](image/1.gif)
+![](https://img-blog.csdnimg.cn/20200703205703720.gif)
 
-![](image/2.gif)
+![](https://img-blog.csdnimg.cn/20200703205703703.gif)
 
 # 2 环境
 自带了一个OpenJDK11制成的JRE，无需任何环境。
@@ -84,7 +84,7 @@ java -jar ../../release/Calculator.jar
 ```
 
 ### 3.2.2 通过IDE运行
-同Win。
+<a href="#user-content-312-通过ide运行">同Win。</a>
 
 ### 3.2.3 编译运行
 
